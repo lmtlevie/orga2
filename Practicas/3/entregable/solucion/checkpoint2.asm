@@ -1,5 +1,6 @@
 extern sumar_c
 extern restar_c
+extern operacion
 ;########### SECCION DE DATOS
 section .data
 
@@ -16,16 +17,23 @@ global alternate_sum_4_using_c
 
 ;########### DEFINICION DE FUNCIONES
 ; uint32_t alternate_sum_4(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4);
-; registros: x1[?], x2[?], x3[?], x4[?]
+; registros: x1[edi], x2[esi], x3[edx], x4[ecx]
 alternate_sum_4:
 	;prologo
-	; COMPLETAR
+	push rbp ; alineado a 16
+	mov rbp,rsp
+	
+	sub edi, esi
+	add edi, edx
+	sub edi, ecx
+
+	mov eax, edi
 
 	;recordar que si la pila estaba alineada a 16 al hacer la llamada
 	;con el push de RIP como efecto del CALL queda alineada a 8
 
 	;epilogo
-	; COMPLETAR
+	pop rbp
 	ret
 
 ; uint32_t alternate_sum_4_using_c(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4);
@@ -36,6 +44,7 @@ alternate_sum_4_using_c:
 	mov rbp,rsp
 
 	; COMPLETAR
+	call operacion
 
 	;epilogo
 	pop rbp
@@ -46,6 +55,7 @@ alternate_sum_4_using_c:
 ; uint32_t alternate_sum_4_simplified(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4);
 ; registros: x1[?], x2[?], x3[?], x4[?]
 alternate_sum_4_simplified:
+	call operacion
 	ret
 
 
@@ -53,8 +63,14 @@ alternate_sum_4_simplified:
 ; registros y pila: x1[?], x2[?], x3[?], x4[?], x5[?], x6[?], x7[?], x8[?]
 alternate_sum_8:
 	;prologo
-
-	; COMPLETAR
+	;esto esta mal
+	call alternate_sum_4
+	mov edi, eax
+	push r8
+	push r9
+	call alternate_sum_4
+	add eax, edi
+	;--------
 
 	;epilogo
 	ret
