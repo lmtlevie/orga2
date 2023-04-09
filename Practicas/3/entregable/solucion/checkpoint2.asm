@@ -60,25 +60,43 @@ alternate_sum_4_simplified:
 
 
 ; uint32_t alternate_sum_8(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4, uint32_t x5, uint32_t x6, uint32_t x7, uint32_t x8);
-; registros y pila: x1[?], x2[?], x3[?], x4[?], x5[?], x6[?], x7[?], x8[?]
+; registros y pila: x1[rdi], x2[rsi], x3[rdx], x4[rcx], x5[r8], x6[r9], x7[rbp+0x10], x8[rbp+ 0x18]
 alternate_sum_8:
 	;prologo
-	;esto esta mal
-	call alternate_sum_4
-	mov edi, eax
-	push r8
-	push r9
-	call alternate_sum_4
-	add eax, edi
+	push rbp ; alineado a 16
+	mov rbp,rsp
+
+	; x1 - x2 + x3 - x4 , misma idea que alternate sum
+	mov eax, edi
+	sub eax, esi
+	add eax, edx
+	sub eax, ecx
+
+	;// devuelve el resultado de la operación x1 - x2 + x3 - x4 + x5 - x6 + x7 - x8
+	add eax, r8d
+	sub eax, r9d
+	add eax, [rbp+0x10]
+	sub eax, [rbp+0x18]
 	;--------
 
 	;epilogo
+	pop rbp	
 	ret
 
 
 ; SUGERENCIA: investigar uso de instrucciones para convertir enteros a floats y viceversa
 ;void product_2_f(uint32_t * destination, uint32_t x1, float f1);
-;registros: destination[?], x1[?], f1[?]
-product_2_f:
-	ret
+;registros: destination[rdi], x1[rsi], f1[XMM0]
 
+product_2_f:
+	; El x1 esta en rsi y el f1 en XMM0
+	; El resultado se almacena en XMM1
+	; El resultado se almacena en rax
+	cvtsi2ss   xmm1, rsi
+	mulss xmm1, xmm0
+	;la direccion del resultado se almacena en rdi, el resultado debe ser truncado
+	cvttss2si rax, xmm1
+	mov [rdi], rax
+
+	
+	ret
