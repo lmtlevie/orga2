@@ -25,8 +25,14 @@ strCmp:
 		mov al,[rdi]
 		mov bl,[rsi]
 		
-		add rdi,1
-		add rsi,1
+		inc rdi
+		inc rsi
+		
+		cmp al,0
+		je .equal_a
+
+		cmp bl,0
+		je .equal_b
 
 		cmp al,bl
 		je .cycle
@@ -35,17 +41,24 @@ strCmp:
 
 		jl .menor
 
-		mov rax,0
-
-		jmp .end
-	
+			
 	.mayor:
-		mov rax,1
-		jmp .end
-	.menor:
 		mov rax,-1
 		jmp .end
-
+	.menor:
+		mov rax,1
+		jmp .end
+	.equal_a:
+		cmp bl,0
+		je .equal
+		jmp .menor
+	.equal_b:
+		cmp al,0
+		je .equal
+		jmp .mayor
+	.equal:
+		mov rax,0
+		jmp .end
 	.end:
 		pop rbp	
 
