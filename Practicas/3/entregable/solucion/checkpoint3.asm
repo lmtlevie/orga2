@@ -34,10 +34,23 @@ complex_sum_z:
 	ret
 
 ;extern uint32_t packed_complex_sum_z(packed_complex_item *arr, uint32_t arr_length);
-;registros: arr[?], arr_length[?]
+;registros: arr[rdi], arr_length[esi]
 packed_complex_sum_z:
+	push rbp
+	mov rbp, rsp
+	; Cargue en el rbp  el valor de rsp
+	;20 bytes desde el rsp esta en elemento z del primer item del array
+	
+	mov eax,0
+	mov ecx, esi ; carga la cantidad de iteraciones a hacer al contador de vueltas
+	.cycle:     ; etiqueta a donde retorna el ciclo que itera sobre arr
+		add eax, [rdi + 20] ; suma el elemento z del item actual al acumulador
+		add rdi, 24 ; incrementa el puntero al siguiente item
+		loop .cycle ; decrementa ecx y si es distinto de 0 salta a .cycle
+	
+	;epilogo
+	pop rbp
 	ret
-
 
 ;extern void product_9_f(uint32_t * destination
 ;, uint32_t x1, float f1, uint32_t x2, float f2, uint32_t x3, float f3, uint32_t x4, float f4
