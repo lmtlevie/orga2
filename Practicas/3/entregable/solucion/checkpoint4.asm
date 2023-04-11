@@ -16,7 +16,40 @@ global strLen
 
 ; int32_t strCmp(char* a, char* b)
 strCmp:
-	ret
+	;prologo
+	push rbp
+	mov rbp,rsp
+	
+	;asumo string igual tamanio
+	.cycle:
+		mov al,[rdi]
+		mov bl,[rsi]
+		
+		add rdi,1
+		add rsi,1
+
+		cmp al,bl
+		je .cycle
+		
+		jg .mayor
+
+		jl .menor
+
+		mov rax,0
+
+		jmp .end
+	
+	.mayor:
+		mov rax,1
+		jmp .end
+	.menor:
+		mov rax,-1
+		jmp .end
+
+	.end:
+		pop rbp	
+
+		ret
 
 ; char* strClone(char* a)
 strClone:
