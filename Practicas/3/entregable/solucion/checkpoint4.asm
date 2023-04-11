@@ -81,6 +81,22 @@ strPrint:
 
 ; uint32_t strLen(char* a)
 strLen:
-	ret
+	;en rdi esta el puntero a primer string
+	; si aumento 1 byte paso al siguiente
+	; si es 0 se termina
+	mov rsi, 0
+	.cycle
+		mov al, [rdi]
+		cmp al, 0
+		je .end
+		add rsi,1
+		add rdi,1
+		jmp .cycle
+		
+	.end
+		mov rax, rsi
+		ret
+
+
 
 
