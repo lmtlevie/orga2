@@ -95,8 +95,8 @@ product_2_f:
 	cvtsi2ss   xmm1, rsi
 	mulss xmm1, xmm0
 	;la direccion del resultado se almacena en rdi, el resultado debe ser truncado
-	cvttss2si rax, xmm1
-	mov [rdi], rax
+	cvttss2si eax, xmm1
+	mov [rdi], eax
 
 	
 	ret
