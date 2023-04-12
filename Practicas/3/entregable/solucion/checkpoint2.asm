@@ -20,19 +20,21 @@ global alternate_sum_4_using_c
 ; registros: x1[edi], x2[esi], x3[edx], x4[ecx]
 alternate_sum_4:
 	;prologo
-	push rbp ; alineado a 16
+	push rbp 
 	mov rbp,rsp
-	
-	sub edi, esi
-	add edi, edx
-	sub edi, ecx
+	sub rsp, 8
 
-	mov eax, edi
+	sub rdi, rsi
+	add rdi, rdx
+	sub rdi, rcx
+
+	mov rax, rdi
 
 	;recordar que si la pila estaba alineada a 16 al hacer la llamada
 	;con el push de RIP como efecto del CALL queda alineada a 8
 
 	;epilogo
+	mov rsp, rbp
 	pop rbp
 	ret
 
@@ -40,13 +42,16 @@ alternate_sum_4:
 ; registros: x1[rdi], x2[rsi], x3[rdx], x4[rcx]
 alternate_sum_4_using_c:
 	;prologo
-	push rbp ; alineado a 16
+	push rbp 
 	mov rbp,rsp
+	sub rsp, 8
+
 
 	; COMPLETAR
 	call operacion
 
 	;epilogo
+	mov rsp, rbp
 	pop rbp
 	ret
 
@@ -65,21 +70,23 @@ alternate_sum_8:
 	;prologo
 	push rbp ; alineado a 16
 	mov rbp,rsp
+	sub rsp, 8
 
 	; x1 - x2 + x3 - x4 , misma idea que alternate sum
-	mov eax, edi
-	sub eax, esi
-	add eax, edx
-	sub eax, ecx
+	mov rax, rdi
+	sub rax, rsi
+	add rax, rdx
+	sub rax, rcx
 
 	;// devuelve el resultado de la operación x1 - x2 + x3 - x4 + x5 - x6 + x7 - x8
-	add eax, r8d
-	sub eax, r9d
-	add eax, [rbp+0x10]
-	sub eax, [rbp+0x18]
+	add rax, r8
+	sub rax, r9
+	add rax, [rbp+0x10]
+	sub rax, [rbp+0x18]
 	;--------
 
 	;epilogo
+	mov rsp, rbp
 	pop rbp	
 	ret
 
@@ -92,11 +99,18 @@ product_2_f:
 	; El x1 esta en rsi y el f1 en XMM0
 	; El resultado se almacena en XMM1
 	; El resultado se almacena en rax
+	push rbp
+	mov rbp, rsp
+	sub rsp, 4
+
 	cvtsi2ss   xmm1, rsi
+	;cvtss2sd xmm0, xmm0
 	mulss xmm1, xmm0
 	;la direccion del resultado se almacena en rdi, el resultado debe ser truncado
 	cvttss2si eax, xmm1
 	mov [rdi], eax
 
-	
+	;epilogo
+	mov rsp, rbp
+	pop rbp
 	ret

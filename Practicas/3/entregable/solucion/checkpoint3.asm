@@ -17,39 +17,30 @@ global product_9_f
 ; Por cada item del array w,x,y,z 	
 complex_sum_z:
 	;prologo
-	push rbp
-	mov rbp, rsp
-	; Cargue en el rbp  el valor de rsp
-	;20 bytes desde el rsp esta en elemento z del primer item del array
-	
-	mov eax,0
-	mov ecx, esi ; carga la cantidad de iteraciones a hacer al contador de vueltas
+	mov rax,0
+	mov rcx, rsi ; carga la cantidad de iteraciones a hacer al contador de vueltas
 	.cycle:     ; etiqueta a donde retorna el ciclo que itera sobre arr
-		add eax, [rdi + 24] ; suma el elemento z del item actual al acumulador
+		add rax, [rdi + 24] ; suma el elemento z del item actual al acumulador
 		add rdi, 32 ; incrementa el puntero al siguiente item
 		loop .cycle ; decrementa ecx y si es distinto de 0 salta a .cycle
 	
 	;epilogo
-	pop rbp
 	ret
 
 ;extern uint32_t packed_complex_sum_z(packed_complex_item *arr, uint32_t arr_length);
 ;registros: arr[rdi], arr_length[esi]
 packed_complex_sum_z:
-	push rbp
-	mov rbp, rsp
 	; Cargue en el rbp  el valor de rsp
 	;20 bytes desde el rsp esta en elemento z del primer item del array
 	
-	mov eax,0
-	mov ecx, esi ; carga la cantidad de iteraciones a hacer al contador de vueltas
+	mov rax,0
+	mov rcx, rsi ; carga la cantidad de iteraciones a hacer al contador de vueltas
 	.cycle:     ; etiqueta a donde retorna el ciclo que itera sobre arr
-		add eax, [rdi + 20] ; suma el elemento z del item actual al acumulador
+		add rax, [rdi + 20] ; suma el elemento z del item actual al acumulador
 		add rdi, 24 ; incrementa el puntero al siguiente item
 		loop .cycle ; decrementa ecx y si es distinto de 0 salta a .cycle
 	
 	;epilogo
-	pop rbp
 	ret
 
 ;extern void product_9_f(uint32_t * destination
@@ -64,6 +55,8 @@ product_9_f:
 	push rbp
 	mov rbp, rsp
 
+	mov rax,1
+	cvtsi2sd xmm9, rax
 	;convertimos los flotantes de cada registro xmm en doubles
 	; COMPLETAR
 	cvtss2sd  xmm0, xmm0
@@ -74,6 +67,7 @@ product_9_f:
 	cvtss2sd  xmm5, xmm5
 	cvtss2sd  xmm6, xmm6
 	cvtss2sd  xmm7, xmm7
+	cvtss2sd  xmm8, [rbp + 0x30]
 
 	;multiplicamos los doubles en xmm0 <- xmm0 * xmm1, xmmo * xmm2 , ...
 	; COMPLETAR
@@ -84,8 +78,7 @@ product_9_f:
 	mulsd xmm0, xmm5
 	mulsd xmm0, xmm6
 	mulsd xmm0, xmm7
-	cvtss2sd  xmm1, [rbp + 0x30]
-	mulsd xmm0, xmm1
+	mulsd xmm0, xmm8
 	; convertimos los enteros en doubles y los multiplicamos por xmm0.
 	; COMPLETAR
  	cvtsi2sd xmm1, esi
