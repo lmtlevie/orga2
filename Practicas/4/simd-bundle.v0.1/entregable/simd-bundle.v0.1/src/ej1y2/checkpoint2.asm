@@ -14,7 +14,17 @@ checksum_asm:
 		movd xmm1, [rdi+ 128] ;b
 		movd xmm2, [rdi + 256] ;c0 a c3
 		movd xmm3, [rdi+ 128*3] ;c4 a c8
-		
+		;Limpio los registros a usar
+		xor xmm4, xmm4
+		xor xmm5, xmm5
+		xor xmm6, xmm6
+		xor xmm7, xmm7
+		xor xmm8, xmm8
+		xor xmm9, xmm9
+		xor xmm10, xmm10
+		xor xmm11, xmm11
+		xor xmm12, xmm12
+
 		; extinedo a 32 bits
 		punpckhwd xmm4, xmm0;
 		punpcklwd xmm5, xmm0; 
