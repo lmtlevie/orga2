@@ -1,79 +1,51 @@
+global checksum_asm
+
+section .rodata
+	_8: times 8 dw 8
+
 
 section .text
 
-global checksum_asm
+; uint8_t checksum_asm(void* array = rdi, uint32_t n = rsi)
 
-; uint8_t checksum_asm(void* array, uint32_t n)
-;1 si (cji = (aji + bji)*8 
 checksum_asm:
 	push rbp
 	mov rbp,rsp
+
 	mov rcx, rsi
+	pxor xmm3, xmm3
+	movdqu xmm3, [_8]
+
 	.ciclo:
-		movd xmm0, [rdi]	;a
-		movd xmm1, [rdi+ 128] ;b
-		movd xmm2, [rdi + 256] ;c0 a c3
-		movd xmm3, [rdi+ 128*3] ;c4 a c8
-		;Limpio los registros a usar
-		xor xmm4, xmm4
-		xor xmm5, xmm5
-		xor xmm6, xmm6
-		xor xmm7, xmm7
-		xor xmm8, xmm8
-		xor xmm9, xmm9
-		xor xmm10, xmm10
-		xor xmm11, xmm11
-		xor xmm12, xmm12
+		movdqa xmm0, [rdi] 		; | a1 | a2 | a3 | a4 | | a5 | a6 | |a7| |a8| = 128 bits
+		movdqa xmm1, [rdi+16] 	; | b1 | b2 | b3 | b4 | | b5 | b6 | |b7| |b8| = 128 bits
+		movdqa xmm2, [rdi+32] 	; | c1 | c2 | c3 | c4 | = 128 bits
+		movdqa xmm6, [rdi+48]   ; | c5 | c6 | c7 | c8 | = 128 bits
+		paddw xmm0, xmm1        ; | a1+b1 | a2+b2 | a3+b3 | a4+b4 | | a5+b5 | a6+b6 | |a7+b7| |a8+b8| = 128 bits
 
-		; extinedo a 32 bits
-		punpckhwd xmm4, xmm0;
-		punpcklwd xmm5, xmm0; 
-		punpckhwd xmm6, xmm1;
-		punpcklwd xmm7, xmm1;
-		
-		;sumo a + b
-		paddd xmm4, xmm6
-		paddd xmm5, xmm7
-		movdqa xmm6, xmm4
-		movdqa xmm8, xmm5
-	
-		;
-		mov ebx ,8
-		movd xmm0, ebx
-		punpckldq xmm0,xmm0
-		pmulhw xmm4, xmm0 ;a0+b0, a1+b1 . *8
-		pmullw xmm6, xmm0  ; 
-		pmulhw xmm5, xmm0 
-		pmullw xmm8, xmm0  
+		movdqu xmm4, xmm0 		;xmm4 = xmm0
+		pmullw xmm0, xmm3		;xmm0 = |lw((a1+b1)*8)|..............|lw((a8+b8)*8)|
+		pmulhw xmm4, xmm3		;xmm4 = |hi((a1+b1)*8)|..............|hi((a8+b8)*8)|
 
-		;Separo los c en 2 y los extiendo a 64 bits
-		punpckldq xmm9, xmm2
-		punpckhdq xmm10, xmm2
-		punpckldq xmm11, xmm3
-		punpckhdq xmm12, xmm3
+		movdqa xmm5, xmm0		;xmm5 = xmm0
+		punpcklwd xmm0, xmm4	;xmm0 = | hi:low(a3*b3) ... hi:low(0a*b0) |
+		punpckhwd xmm5, xmm4	;xmm5 = | hi:low(a7*b7) ... hi:low(a4*b4) |
 
-		
-		comisd xmm9, xmm4 ;Comparo A1+B1=C, A2+B2)*8=C2
-		jnz mal
-		comisd xmm10, xmm5 ;Comparo A1+B1=C, A2+B2)*8=C2
-		jnz mal
-		comisd xmm11, xmm6 ;Comparo A1+B1=C, A2+B2)*8=C2
-		jnz mal
-		
-		comisd xmm12, xmm7 ;Comparo A1+B1=C, A2+B2)*8=C2
-		jnz mal
-		add rdi, 128*4
-		dec rcx
-		jnz .ciclo
-		
+		pcmpeqd xmm0, xmm2
+		ptest xmm0, xmm0
+		jz .notEqual
+		pcmpeqd xmm5, xmm6
+		ptest xmm5, xmm5
+		jz .notEqual
 
-	mov rax,1
-	jmp final
-	mal:
+		add rdi, 64
+	loop .ciclo
+
+	mov rax, 1
+	pop rbp
+	ret
+
+	.notEqual:
 		mov rax, 0
-	
-	final:
-		mov rsp, rbp
 		pop rbp
-		ret  
-
+		ret
