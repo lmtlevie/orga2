@@ -1,7 +1,11 @@
+
+extern malloc
+extern free
+
 section .rodata
 sharpen: dd -1.0, -1.0, -1.0, -1.0, 9.0, -1.0, -1.0, -1.0, -1.0
 solo_alpha: db 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255
-
+pixel_negro : db 0,0,0,255
 section .text
 	%define offset_pixels 16
 	%define float_size 4
@@ -22,104 +26,108 @@ Sharpen_asm:
 	push r14
 	push r15
 
-	; cargada de registros iniciales
-	xor r13, r13 ; r13 = 0, guardamos en r13 el desplazamiento en src
-	mov r14, r9 ; r14 = 0, guardamos en r14 los valores de los pixeles en cada ciclo
-	mov r15, rcx ; r15 = height, guardamos en r15 la altura de la imagen como contador
-	movdqu xmm10, [solo_alpha]
-
-	xor rcx, rcx
-	mov rcx, r9
-    dec rcx
-	sub rcx, 8 ; rcx = src_row_size - 8 pixels de borde
-
-    .primeraFila:
-        movups [rsi], xmm10
-        add r13, 16
-        add rsi, 16                ; 4(px) * 4(bytes cada px)
-        cmp r13, r8
-        jne .primeraFila
-    ;Todos negros en la primera fila
-
-	.filtro:
-	cmp r15, 0 
-	je .fin
-
-	pxor xmm6, xmm6 ; pixel 1
-	pxor xmm7, xmm7 ; pixel 2
-	pxor xmm8, xmm8 ; pixel 3
-	pxor xmm9, xmm9 ; pixel 4
-	xor r9, r9 ; r9 = ii
-
-	.loopfilaSharpen:
-	cmp r9, 3 ; Si ii = 3 paso a siguiente pixel
-
-	je .finSharpen
-	xor r10, r10 ; r10 = jj
-
-	.loopColSharpen:
-	mov r11, 12
-	imul r11, r9 ; r11 = 12*ii
-	movdqu xmm1, [sharpen + r11 + r10*4] ; xmm1 = [a, b, c, d]
-	shufps xmm1, xmm1, 0x00 ; xmm1 = [a, a, a, a]
-
-	;calculo en r11 el offset
-	mov r11, r8 ; r11 = row_size  
-	imul r11, r9 ;  r11 = row_size * ii
-
-	mov r12, r10 ; r12 = jj
-	imul r12, 4 ; r12 = jj * 4 (4 bytes por pixel)
-
-	add r11, r12 ; r11 = row_size * ii + jj * 4
-
-	movdqu xmm0, [rdi + r11] ; Cargo 2 pixeles
-
-	;Extender los pixeles a double word
-	pmovzxbd xmm2, xmm0 
-	psrldq xmm0, 4 
-	pmovzxbd xmm3, xmm0 
-	cvtdq2ps xmm2, xmm2 
-	cvtdq2ps xmm3, xmm3 
-
-    ; Hago la multiplicacion por el valor [ii][jj] de la matriz sharpen
-
-	mulps xmm2, xmm1
-	mulps xmm3, xmm1
-	; Hago la suma saturada
-
-	addps xmm6, xmm2
-	addps xmm7, xmm3
-
-	inc r10
-	cmp r10, 3
-	jne .loopColSharpen
-	inc r9
-	jmp .loopfilaSharpen
-
-	.finSharpen:
-	cvtps2dq xmm6, xmm6 ; float a int
-	cvtps2dq xmm7, xmm7
-
-	; empaquetado
-	packssdw xmm6, xmm7
-	por xmm6, xmm10 ; alpha en 255
-
-	movdqu [rsi + 4], xmm6 ; guardo resultado en dst[i+1][j+1]
-
-	add rdi, 8 ; avanzamos 4 pixel de lectura en src
-	add rsi, 8; avanzamos 4 pixel de escritura en dst
-	add r13, 8; sumamos 4 pixel al desplazamiento total en src
-
-	cmp r13, rcx 
-	jl .filtro
-
-	.sigLinea:
-	xor r13, r13 ; reiniciamos el desplazamiento en src
+	;Poner primera fila en negro
+	movdqu xmm6, [solo_alpha]
+	movd xmm10, [pixel_negro]
 	
-	dec r15	
-	jmp .filtro
+	xor r10, r10
+
+	.filaNegro:
+		movdqu [rsi + r10] , xmm6
+		add r10, 16
+		cmp r10, r8
+		jne .filaNegro
 	
-	.fin:
+	push rsi
+	push rdi
+	sub rcx, 2
+	sub rdx, 2
+	xor r10, r10
+	add rsi, r9
+	add rdi, r8 
+
+	ciclo:
+		;Poner primer pixel en negro en 0,0,0,255
+		movd [rsi], xmm10
+		xor r12, r12 ;La columna por la que voy
+		xor r13, r13 ;El ii
+		cmp r10, rcx ;Si llegue a la ultima fila
+		je fin
+		;SINO   TENGO QUE SEGUIR CICLANDO
+		pxor xmm6, xmm6
+		pxor xmm7, xmm7
+		;Voy guardando los totalB,G,R
+		loopI:
+			cmp r13, 3 
+			je finSharpen
+			xor r14, r14 ; El JJ
+			loopJJ:
+			;Tengo que calcular que valor de sharpen corresponde
+			mov r11, 12
+			imul r11, r13
+			movdqu xmm1, [sharpen + r11 + r10*4]
+			shufps xmm1, xmm1, 0x00 ; xmm1 = [a, a, a, a]
+
+			;Que valor necesito del rdi
+			;[i+ii][j+jj	
+			mov r15, r8
+			imul r15, r13
+
+			mov r11, r14
+			imul r11, 4 ;Cada pixel ocupa 4
+			add r15, r11
+			add r15, r12 ;Por el pixel en el  que iba
+			movdqu xmm2, [rdi + r15] ; |PIXEL1|PIXEL2|PIXEL3|PIXEL4|
+			;NECESITO PARASARLO A 32 BITS CADA PIXEL Y QUEDARME SOLO CON 1 Y 2
+			pmovzxbd xmm3, xmm2 ; extiendo el primer pixel de byte a double word (empaquetados)
+			psrldq xmm2, 4
+			pmovzxbd xmm4, xmm2 ; extiendo el primer pixel de byte a double word (empaquetados)
+			;XMM3 = |0|0|0|PIXEL1|
+			;XMM4 = |0|0|0|PIXEL2|
+
+			cvtdq2ps xmm2, xmm2 ; convierto el primer pixel de int a float
+			cvtdq2ps xmm3, xmm3 ; convierto el segundo pixel de int a float
+
+			mulps xmm2, xmm1 ;Multiplico por el sharpen
+			mulps xmm3, xmm1 ;Multiplico por el sharpen
+
+			addps xmm6, xmm2
+			addps xmm7, xmm3
+
+			inc r14
+			cmp r14, 3
+			jne loopJJ
+			inc r13 
+			jmp loopI
+		finSharpen:
+		;Ya tengo los valores de sharpen en xmm6 y xmm7
+		;Tengo que juntarlos y guardarlos en dst[i+1][j+1]
+		;XMM6 = |B|G|R|A|
+		;XMM7 = |B|G|R|A|
+		cvtps2dq xmm6, xmm6 ; float a int
+		cvtps2dq xmm7, xmm7
+
+		packssdw xmm6, xmm7 ; empaqueto los 4 int en 2 double word
+		packssdw xmm6, xmm6 ; Tengo los dos pixeles repetidos en cada mitad
+		
+		movq [rsi + r15 + 4], xmm6 ; Guardo 2 pixeles
+
+		add r15, 8
+		cmp r15, r8
+		jne ciclo
+		;Si  son iguales es porque estoy en la ultima columna
+		add rdi, r8
+		add rsi, r8
+		xor r15, r15
+		inc r10
+		jmp ciclo
+
+	;No toco primera fila
+
+	fin:
+	
+	pop rdi
+	pop rsi
 	pop r15
 	pop r14
 	pop r13
