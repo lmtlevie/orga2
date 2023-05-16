@@ -35,7 +35,7 @@ Sharpen_asm:
 	top_black:
 		movups [rsi + r10], xmm10
 		add r10, 4*4                ; 4(px) * 4(bytes cada px)
-		cmp r10, r8
+		cmp r10, r
 		jne top_black
 
 
@@ -74,32 +74,21 @@ Sharpen_asm:
 
 				add r13, r14
 
-				movdqu xmm0, [rdi + r13] ;|PIXEL1|PIXEL2|PIXEL3|PIXEL4|
+				movq xmm0, [rdi + r13] ;|PIXEL1|PIXEL2|PIXEL3|PIXEL4|
 
 				pmovzxbd xmm2, xmm0 ; extiendo el primer pixel de byte a double word (empaquetados)
 				psrldq xmm0, 4 ; shift xmm0 4 bytes a la derecha
 				pmovzxbd xmm3, xmm0 ; extiendo el segundo pixel de byte a double word (empaquetados)
 				psrldq xmm0, 4 ; shift xmm0 4 bytes a la derecha
-				pmovzxbd xmm4, xmm0 ; extiendo el tercer pixel de byte a double word (empaquetados)
-				psrldq xmm0, 4 ; shift xmm0 4 bytes a la derecha
-				pmovzxbd xmm5, xmm0 ; extiendo el cuarto pixel de byte a double word (empaquetados)
-
-					
+								
 				cvtdq2ps xmm2, xmm2 ; convierto el primer pixel de int a float
 				cvtdq2ps xmm3, xmm3 ; convierto el segundo pixel de int a float
-				cvtdq2ps xmm4, xmm4 ; convierto el tercer pixel de int a float
-				cvtdq2ps xmm5, xmm5 ; convierto el cuarto pixel de int a float
-
+				
 				mulps xmm2, xmm1
 				mulps xmm3, xmm1
-				mulps xmm4, xmm1
-				mulps xmm5, xmm1
-
-				addps xmm6, xmm2
+			
+		 		addps xmm6, xmm2
 				addps xmm7, xmm3
-				addps xmm8, xmm4
-				addps xmm9, xmm5
-
 				;; AUMENTAR JJ EN 1 Y CHEQUEAR SI ES IGUAL A 3
 
 				inc r12
@@ -112,44 +101,42 @@ Sharpen_asm:
 				;Tengo que convertir los valores a int y pasarlos a 8 bits de manera saturada
 				cvtps2dq xmm6, xmm6
 				cvtps2dq xmm7, xmm7
-				cvtps2dq xmm8, xmm8
-				cvtps2dq xmm9, xmm9
-
+		
 				packssdw xmm6, xmm7
-				packssdw xmm8, xmm9
-				packuswb xmm6, xmm8
-				por xmm6, xmm10 ; alpha en 255
+				packuswb xmm6, xmm6
+			
+			    por xmm6, xmm10 ; alpha en 255
 				;por xmm6, xmm10 ; alpha en 255
 
-				movdqu [rsi + r8 + 4], xmm6
+				movq [rsi + r8 + 4], xmm6
 
-				add rsi, 16 ;4 PIXELES
-				add rdi, 16 ;4 PIXELes
+				add rsi, 8 ;2 PIXELES
+				add rdi, 8 ;2 PIXELes
 
-				add r15, 16;4 PIXELES
+				add r15, 8;2 PIXELES
 
 				cmp r15, r9
 				jl  ciclo
 
 				;Si cambie de fila
 				inc r10
-				sub rsi, 32
+				sub rsi, 16
 				movdqu xmm0, [rsi + r8+ 4]
 				pand xmm0, xmm13
 				movups [rsi + r8+ 4], xmm0
-				add rsi, 32 ;2 PIXELES
-				sub rsi, 36
+				add rsi, 16 ;2 PIXELES
+				sub rsi, 20
 				movdqu xmm0, [rsi + r8+ 4]
 				pand xmm0, xmm13
 				movups [rsi + r8+ 4], xmm0
-				add rsi, 36 ;2 PIXELES
+				add rsi, 20 ;2 PIXELES
 				xor r15, r15
 				cmp r10, rcx	
 				jne ciclo
 
 
 			fin:
-				sub rsi, 16
+				sub rsi, 8
 				add rsi, r8
 				xor r10, r10
 				btm_black:
