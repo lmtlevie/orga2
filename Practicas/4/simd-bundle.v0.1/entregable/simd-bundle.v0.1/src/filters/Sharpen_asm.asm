@@ -40,7 +40,7 @@ Sharpen_asm:
 
 
 	sub rdx, 2 ; 3 porque termina en ancho -3 y 1 porque no me importa el primero
-	sub rcx, 1
+	sub rcx, 1	; sub rcx, 2  -> con esto no pierde memoria y deja la linea blanca abajo
 	sub r9, 2
 	xor r10, r10
 
