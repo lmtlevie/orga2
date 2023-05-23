@@ -70,4 +70,9 @@ void screen_draw_box(uint32_t fInit, uint32_t cInit, uint32_t fSize,
 }
 
 void screen_draw_layout(void) {
+ screen_draw_box(0, 0, VIDEO_FILS,VIDEO_COLS, C_FG_BLUE, C_BG_BLUE);  // Fondo azul
+
+ screen_draw_box(25, 0, 55, VIDEO_COLS, C_FG_LIGHT_BROWN, C_FG_LIGHT_BROWN);  // Franja Amarilla
+
+ screen_draw_box(55, 0, 80, VIDEO_COLS, C_FG_BLUE, C_FG_BLUE);  // Franja Amarilla
 }
