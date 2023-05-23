@@ -22,6 +22,7 @@ void pic_finish2(void) {
 
 // COMPLETAR: implementar pic_reset()
 void pic_reset() {
+    
 }
 
 void pic_enable() {

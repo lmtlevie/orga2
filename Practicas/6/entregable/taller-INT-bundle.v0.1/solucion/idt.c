@@ -11,6 +11,7 @@
 #include "isr.h"
 #include "screen.h"
 
+
 idt_entry_t idt[255] = {0};
 
 idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
@@ -42,10 +43,10 @@ idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
   idt[numero] = (idt_entry_t) {                                                \
     .offset_31_16 = HIGH_16_BITS(&_isr##numero),                               \
     .offset_15_0 = LOW_16_BITS(&_isr##numero),                                 \
-    .segsel = GDT_????_?_SEL,                                                  \
-    .type = ???,                                                               \
-    .dpl = ?,                                                                  \
-    .present = ?                                                               \
+    .segsel = GDT_CODE_0_SEL,                                                  \
+    .type = 0x05,                                                               \
+    .dpl = 0x0,                                                                  \
+    .present = 0x1                                                               \
   }
 
 /* COMPLETAR: Dado un numero de de interrupcion asigna a `idt` la entrada
@@ -54,10 +55,10 @@ idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
   idt[numero] = (idt_entry_t) {                                                \
     .offset_31_16 = HIGH_16_BITS(&_isr##numero),                               \
     .offset_15_0 = LOW_16_BITS(&_isr##numero),                                 \
-    .segsel = GDT_????_?_SEL,                                                  \
-    .type = ???,                                                               \
-    .dpl = ?,                                                                  \
-    .present = ?                                                               \
+    .segsel = GDT_CODE_3_SEL,                                                  \
+    .type = 0x05,                                                               \
+    .dpl = 0x03,                                                                  \
+    .present = 0x1                                                               \
   }
 
 void idt_init() {
@@ -84,9 +85,15 @@ void idt_init() {
   IDT_ENTRY0(19);
   IDT_ENTRY0(20);
 
-  // COMPLETAR: Interrupciones de reloj y teclado
+  // COMPLETAR: Interrupciones de reloj y teclado 
+  IDT_ENTRY0(33);
+  IDT_ENTRY0(32);
 
   // COMPLETAR: Syscalls
+  IDT_ENTRY3(88);
+  IDT_ENTRY3(98);
+
+
 }
 
 const char* code2exception[] = {"Divide Error #DE [0]",
