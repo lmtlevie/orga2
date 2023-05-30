@@ -7,8 +7,6 @@
 global start
 
 
-
-
 ; COMPLETAR - Agreguen declaraciones extern según vayan necesitando
 extern A20_enable
 extern GDT_DESC
@@ -89,23 +87,30 @@ modo_protegido:
     ; COMPLETAR - Establecer el tope y la base de la pila
     mov esp, 0x25000
     mov ebp, 0x25000
-    
+
+    print_text_pm start_pm_msg, start_pm_len, 0x0004, 0x0000, 0x0000
+    call screen_draw_layout
+
+
     call idt_init
+
     lidt [IDT_DESC]
 
 
     call pic_reset
     call pic_enable
+
     sti
 
-    int 0x88
+
+    int 88
+
+    int 98
+
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
-    print_text_pm start_pm_msg, start_pm_len, 0x0004, 0x0000, 0x0000
+    ;print_text_pm start_pm_msg, start_pm_len, 0x0004, 0x0000, 0x0000
     ; COMPLETAR - Inicializar pantalla
-    call screen_draw_layout
-    call pic_reset
-    call pic_enable
-    sti
+    
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
     mov ebx, 0xFFFF

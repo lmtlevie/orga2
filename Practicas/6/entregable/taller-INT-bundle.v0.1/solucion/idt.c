@@ -11,7 +11,6 @@
 #include "isr.h"
 #include "screen.h"
 
-
 idt_entry_t idt[255] = {0};
 
 idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
@@ -23,19 +22,11 @@ idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
  * solo incluye sus 16bits mas significativos */
 #define HIGH_16_BITS(v) ((uint32_t)(v) >> 16 & 0xFFFF)
 
-/*
-    La siguiente es una macro de EJEMPLO para ayudar a armar entradas de
+
+/*     La siguiente es una macro de EJEMPLO para ayudar a armar entradas de
     interrupciones. Para usar, completar CORRECTAMENTE los atributos
     (en defines.h) y el registro de segmento (ver defines.h). Invocarla
-    desde idt_init() de la siguiene manera:
-
-    void idt_init() {
-        IDT_ENTRY0(0);
-        ...
-        IDT_ENTRY0(19);
-        ...
-    }
-*/
+    desde idt_init() de la siguiene manera: */
 
 /* COMPLETAR: Dado un numero de de interrupcion asigna a `idt` la entrada
  * correspondiente con nivel 0 */
@@ -44,9 +35,9 @@ idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
     .offset_31_16 = HIGH_16_BITS(&_isr##numero),                               \
     .offset_15_0 = LOW_16_BITS(&_isr##numero),                                 \
     .segsel = GDT_CODE_0_SEL,                                                  \
-    .type = 0x05,                                                               \
-    .dpl = 0x0,                                                                  \
-    .present = 0x1                                                               \
+    .type = INTERRUPT_GATE_TYPE,                                               \
+    .dpl = 0x0,                                                               \
+    .present = 0x1                                                             \
   }
 
 /* COMPLETAR: Dado un numero de de interrupcion asigna a `idt` la entrada
@@ -55,9 +46,9 @@ idt_descriptor_t IDT_DESC = {sizeof(idt) - 1, (uint32_t)&idt};
   idt[numero] = (idt_entry_t) {                                                \
     .offset_31_16 = HIGH_16_BITS(&_isr##numero),                               \
     .offset_15_0 = LOW_16_BITS(&_isr##numero),                                 \
-    .segsel = GDT_CODE_3_SEL,                                                  \
-    .type = 0x05,                                                               \
-    .dpl = 0x03,                                                                  \
+    .segsel = GDT_CODE_0_SEL,                                                  \
+    .type = INTERRUPT_GATE_TYPE,                                                               \
+    .dpl = 0x3,                                                                  \
     .present = 0x1                                                               \
   }
 
@@ -85,15 +76,15 @@ void idt_init() {
   IDT_ENTRY0(19);
   IDT_ENTRY0(20);
 
-  // COMPLETAR: Interrupciones de reloj y teclado 
-  IDT_ENTRY0(33);
-  IDT_ENTRY0(32);
+  // Interrupciones de reloj y teclado
 
-  // COMPLETAR: Syscalls
+  IDT_ENTRY0(32);
+  IDT_ENTRY0(33);
+
+  // Syscalls
+
   IDT_ENTRY3(88);
   IDT_ENTRY3(98);
-
-
 }
 
 const char* code2exception[] = {"Divide Error #DE [0]",
@@ -264,4 +255,3 @@ void kernel_exception(control_regs cregs,
   print_hex(*((uint32_t*)gregs.esp + 1), 8, STACK_START_COL, 23, C_BG_BLACK | C_FG_LIGHT_GREEN);
   print_hex(*((uint32_t*)gregs.esp + 2), 8, STACK_START_COL, 25, C_BG_BLACK | C_FG_LIGHT_GREEN);
 }
-
