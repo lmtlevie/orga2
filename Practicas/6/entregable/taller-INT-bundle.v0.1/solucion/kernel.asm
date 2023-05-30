@@ -14,6 +14,9 @@ extern A20_enable
 extern GDT_DESC
 extern IDT_DESC
 extern screen_draw_layout
+extern pic_reset
+extern pic_enable
+extern idt_init
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 %define CS_RING_0_SEL 0x08
 %define DS_RING_0_SEL 0x18
@@ -61,7 +64,6 @@ start:
 
     ; COMPLETAR - Cargar la GDT
     lgdt [GDT_DESC]
-    lidt [IDT_DESC]
 
     ; COMPLETAR - Setear el bit PE del registro CR0
     mov eax, cr0
@@ -88,11 +90,22 @@ modo_protegido:
     mov esp, 0x25000
     mov ebp, 0x25000
     
+    call idt_init
+    lidt [IDT_DESC]
+
+
+    call pic_reset
+    call pic_enable
+    sti
+
+    int 0x88
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
     print_text_pm start_pm_msg, start_pm_len, 0x0004, 0x0000, 0x0000
     ; COMPLETAR - Inicializar pantalla
     call screen_draw_layout
-   
+    call pic_reset
+    call pic_enable
+    sti
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
     mov ebx, 0xFFFF
