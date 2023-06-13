@@ -15,6 +15,7 @@ extern screen_draw_layout
 extern pic_reset
 extern pic_enable
 extern idt_init
+extern mmu_init_task_dir
 extern mmu_init_kernel_dir
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 %define CS_RING_0_SEL 0x08
@@ -33,6 +34,9 @@ start_rm_len equ    $ - start_rm_msg
 
 start_pm_msg db     'Iniciando kernel en Modo Protegido'
 start_pm_len equ    $ - start_pm_msg
+
+task_msg db     'Task ok'
+task_len equ    $ - task_msg
 
 ;;
 ;; Seccion de código.
@@ -116,13 +120,20 @@ modo_protegido:
     mov cr0, eax
 
     int 88
-
     int 98
 
     ; COMPLETAR - Imprimir mensaje de bienvenida - MODO PROTEGIDO
     ;print_text_pm start_pm_msg, start_pm_len, 0x0004, 0x0000, 0x0000
     ; COMPLETAR - Inicializar pantalla
     
+    mov ebx, cr3
+    push 0x18000
+    call mmu_init_task_dir
+    mov cr3, eax
+    print_text_pm task_msg, task_len, 0x0004, 0x0000, 0x0000
+    mov cr3, ebx
+    
+
     ; Ciclar infinitamente 
     mov eax, 0xFFFF
     mov ebx, 0xFFFF
