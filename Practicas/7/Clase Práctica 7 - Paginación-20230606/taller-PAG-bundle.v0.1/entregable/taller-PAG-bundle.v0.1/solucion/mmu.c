@@ -8,7 +8,7 @@
 
 #include "mmu.h"
 #include "i386.h"
-#include "defines.h"
+
 #include "kassert.h"
 
 static pd_entry_t *kpd = (pd_entry_t *)KERNEL_PAGE_DIR;
@@ -57,10 +57,7 @@ void mmu_init(void) {}
  */
 paddr_t mmu_next_free_kernel_page(void)
 {
-  // Tengo que chequear si U/S = 0 o pasar a la siguiente
-  paddr_t res = next_free_kernel_page;
-  res += PAGE_SIZE;
-  return res;
+  return next_free_kernel_page + PAGE_SIZE;
 }
 
 /**
@@ -69,9 +66,7 @@ paddr_t mmu_next_free_kernel_page(void)
  */
 paddr_t mmu_next_free_user_page(void)
 {
-  paddr_t res = next_free_user_page;
-  res += PAGE_SIZE;
-  return res;
+  return next_free_user_page + PAGE_SIZE;
 }
 
 /**
@@ -119,15 +114,15 @@ void mmu_map_page(uint32_t cr3, vaddr_t virt, paddr_t phy, uint32_t attrs)
  */
 paddr_t mmu_unmap_page(uint32_t cr3, vaddr_t virt)
 {
-  pd_entry_t *directorio = CR3_TO_PAGE_DIR(cr3);
+  pd_entry_t *page_directory = CR3_TO_PAGE_DIR(cr3);
   int pd_index = VIRT_PAGE_DIR(virt);
+
+  pt_entry_t *page_table = MMU_ENTRY_PADDR(page_directory[pd_index].pt);
+
   int pt_index = VIRT_PAGE_TABLE(virt);
-
-  pt_entry_t *pageTable = (directorio[pd_index].pt << 12);
-
-  pageTable[pt_index].attrs = 0;
-  paddr_t page = pageTable[pt_index].page << 12;
-  pageTable[pt_index].page = 0;
+  page_table[pt_index].attrs = 0;
+  paddr_t page = MMU_ENTRY_PADDR(page_table[pt_index].page);
+  page_table[pt_index].page = 0;
 
   return (page);
 }
@@ -145,18 +140,17 @@ paddr_t mmu_unmap_page(uint32_t cr3, vaddr_t virt)
  */
 void copy_page(paddr_t dst_addr, paddr_t src_addr)
 {
-  uint32_t cr0 = rcr3();
-  mmu_map_page(cr0, SRC_VIRT_PAGE, src_addr, MMU_P | MMU_W);
-  mmu_map_page(cr0, DST_VIRT_PAGE, dst_addr, MMU_P | MMU_W);
-  pd_entry_t *directorio = CR3_TO_PAGE_DIR(cr0);
-  // Copio
+  uint32_t cr3 = rcr3();
+  mmu_map_page(cr3, SRC_VIRT_PAGE, src_addr, MMU_P | MMU_W);
+  mmu_map_page(cr3, DST_VIRT_PAGE, dst_addr, MMU_P | MMU_W);
+  pd_entry_t *page_dir = CR3_TO_PAGE_DIR(cr3);
   for (int i = 0; i < PAGE_SIZE; i++)
   {
     ((uint8_t *)DST_VIRT_PAGE)[i] = ((uint8_t *)SRC_VIRT_PAGE)[i];
   }
 
-  mmu_unmap_page(cr0, SRC_VIRT_PAGE);
-  mmu_unmap_page(cr0, DST_VIRT_PAGE);
+  mmu_unmap_page(cr3, SRC_VIRT_PAGE);
+  mmu_unmap_page(cr3, DST_VIRT_PAGE);
 }
 
 /**
