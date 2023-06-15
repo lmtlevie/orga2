@@ -21,6 +21,8 @@ extern tss_init
 extern tasks_screen_draw
 extern initial_task
 extern idle_task
+extern sched_init
+extern tasks_init
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
 %define CS_RING_0_SEL 0x08
 %define DS_RING_0_SEL 0x18
@@ -102,11 +104,19 @@ modo_protegido:
     call screen_draw_layout
 
     call tss_init
-    call tasks_screen_draw
+    call tasks _screen_draw
+    
+    call sched_init
+    
     call initial_task
     ltr ax
+    
+    call tasks_init
+    
     CALL idle_task
-    JMP ax
+    JMP ax:0x0  
+
+    
 
     call idt_init
 
