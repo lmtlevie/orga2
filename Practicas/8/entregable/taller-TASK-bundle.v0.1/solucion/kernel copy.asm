@@ -22,18 +22,11 @@ extern mmu_init_task_dir
 extern mmu_map_page
 extern mmu_unmap_page
 extern copy_page
-extern tss_init
-extern tasks_screen_draw
-extern tss_create_user_task
-extern sched_init
-extern tasks_init
 
 ; COMPLETAR - Definan correctamente estas constantes cuando las necesiten
-%define CS_RING_0_SEL  0x08  
-%define DS_RING_0_SEL  0x18  
+%define CS_RING_0_SEL  0x08
+%define DS_RING_0_SEL  0x18
 
-%define IDLE_SEL  12 << 3
-%define INITIAL_SEL  11 << 3
 
 BITS 16
 ;; Saltear seccion de datos
@@ -47,6 +40,9 @@ start_rm_len equ    $ - start_rm_msg
 
 start_pm_msg db     'Iniciando kernel en Modo Protegido'
 start_pm_len equ    $ - start_pm_msg
+
+start_cr3_msg db    'Cambio el CR3'
+start_cr3_len equ   $ - start_cr3_msg
 
 ;;
 ;; Seccion de código.
@@ -79,14 +75,16 @@ start:
     or eax, 1
     mov cr0, eax
 
-    ; Salta a modo protegido (far jump)
+    ; COMPLETAR - Saltar a modo protegido (far jump)
     ; (recuerden que un far jmp se especifica como jmp CS_selector:address)
     ; Pueden usar la constante CS_RING_0_SEL definida en este archivo
     jmp CS_RING_0_SEL:modo_protegido
 
 BITS 32
 modo_protegido:
-
+    ; A partir de aca, todo el codigo se va a ejectutar en modo protegido
+    ; Establecer selectores de segmentos DS, ES, GS, FS y SS en el segmento de datos de nivel 0
+    ; Pueden usar la constante DS_RING_0_SEL definida en este archivo
     mov ax, DS_RING_0_SEL
     mov ds, ax
     mov es, ax
@@ -94,47 +92,80 @@ modo_protegido:
     mov fs, ax
     mov ss, ax
 
+    ; Establecer el tope y la base de la pila
     mov esp, 0x25000
     mov ebp, esp
 
+    ; Imprime mensaje de bienvenida - MODO PROTEGIDO
     print_text_pm start_pm_msg, start_pm_len, 1, 0, 0
 
-    call screen_draw_layout
-
-
+    ; Paginacion
+    ; Init MMU
     call mmu_init
 
+    ; Init Page Directory
     call mmu_init_kernel_dir
 
+    ; Cargamos el Page Directory, eax tiene el address del Page Diretory
     mov cr3, eax
 
+    ; Habilitamos paginacion
     mov eax, cr0
     or eax, 0x80000000 ; 0x80000000 es 1 con 30 ceros
     mov cr0, eax
 
-    call tss_init
-    
-    call sched_init
-    call tasks_init
+    ; Mapping test
+    push 2 ; attrs: R/W=1
+    push 0x00400000 ; phy
+    push 0x0050E000 ; virt
+    mov eax, cr3
+    push eax ; cr3
+    call mmu_map_page ; mapping func
+    ; alinear stack
+    ; cantidad de parametros por tamaño de parametro
+    add esp, 4*4
+    mov byte [0x0050E000], 54
 
+    ; Unmap test
+    mov eax, cr3
+    push eax
+    push 0x0050E000 ; virt
+    call mmu_unmap_page
+    add esp, 2*4
+
+    ; Copy page test
+    push 0x00400000 ; src_addr <- 54
+    push 0x00402000 ; dst_addr <- 0
+    call copy_page
+    add esp, 2*4
+
+    ; Fake task test
+    mov ebx, cr3 ; store current CR3
+    push 0x18000
+    call mmu_init_task_dir
+    add esp, 4
+
+    mov cr3, eax ; eax <- new CR3
+    print_text_pm start_cr3_msg, start_cr3_len, 1, 0, 0
+    mov cr3, ebx ; return the previous CR3
+
+    ; PRIMERO SE INICIALIZA PAGINACION Y DESPUES LO OTRO (IDT, INTS)
+
+    ; Inicializar pantalla
+    call screen_draw_layout
+
+    ; Cargar IDT
     call idt_init
     lidt [IDT_DESC]
 
+    ; Inicializacion del PIC
     call pic_reset
     call pic_enable
-
-
-    mov ax, 1500
-    out 0x40, al
-    rol ax, 8
-    out 0x40, al
-    
-    mov ax, INITIAL_SEL
-    ltr ax
-
-
     sti
 
+    int 98
+
+    ; Ciclar infinitamente
     mov eax, 0xFFFF
     mov ebx, 0xFFFF
     mov ecx, 0xFFFF

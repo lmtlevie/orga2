@@ -102,9 +102,9 @@ void tss_init(void) {
 }
 
 void initial_task(void){
-  return gdt[GDT_IDX_TASK_INITIAL]
+  return gdt[GDT_IDX_TASK_INITIAL];
 }
 
 void idle_task(void){
-  return gdt[GDT_IDX_TASK_IDLE]   
+  return gdt[GDT_IDX_TASK_IDLE];   
 }
